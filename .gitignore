@@ -1,1 +1,15 @@
 .idea/
+build/
+dist/
+
+tools/
+!tools/7z.*
+
+*.build/
+*.dist/
+*.onefile-build/
+
+*.exe
+*.zip
+*.rc
+*.spec
