@@ -109,9 +109,22 @@ class Updater:
             ) as json_file:
                 json.dump(version_info, json_file, indent=4)
 
+    def check_json_structure(self):
+        """对老版本version.json的检查"""
+        with open(self.APP_PATH / "version.json", "r+", encoding="utf-8") as json_file:
+            version = json.load(json_file)
+            if "Announcement" not in version:
+                version["Announcement"] = "<hr><p>噔噔——新的公告界面～(∠・ω&lt; )⌒☆</p><hr>"
+                version["Announcement.DoNotShowAgain"] = False
+            if "VersionUpdate" not in version:
+                version["VersionUpdate"] = "<html><h2>版本已更新 0.7.4</h2><ul><li>修改了裁剪截图区域的计算方法，因此您需要前往SRA设置中将“屏幕缩放”一项的值调整到实际的屏幕缩放，例如您的电脑是150%缩放，则在此项中填入1.50。</li><li>为启动时的公告添加了“不再提醒”按钮，点击后到下一次更新前不会再弹出公告。</li><li>适配本周周期演算(2025.2.17)</li></ul></html>"
+                version["VersionUpdate.DoNotShowAgain"] = False
+            json_file.seek(0)
+            json.dump(version, json_file, indent=4, ensure_ascii=False)
+
     @lru_cache(maxsize=1)
     def get_current_version(self) -> VersionInfo:
-        with open(self.APP_PATH / "version.json", "r", encoding="utf-8") as jsonfile:
+        with open(self.APP_PATH / "version.json", "r+", encoding="utf-8") as jsonfile:
             version_info_local = json.load(jsonfile)
             version = version_info_local["version"]
             resource_version = version_info_local["resource_version"]
@@ -128,6 +141,7 @@ class Updater:
     def check_for_updates(self):
         """ 检查并更新 """
         print("检查版本信息...")
+        self.check_json_structure()
         version = self.get_current_version()
         try:
             url = self.version_check(version)
@@ -306,3 +320,6 @@ if __name__ == "__main__":
         main.unzip()
     else:
         main.check_for_updates()
+
+    print('完美运行!')
+    os.system('pause')
