@@ -5,6 +5,10 @@ dist/
 tools/
 !tools/7z.*
 
+data/
+!data/default/*
+!data/*.txt
+
 *.build/
 *.dist/
 *.onefile-build/
@@ -13,3 +17,6 @@ tools/
 *.zip
 *.rc
 *.spec
+
+.gitignore_build
+!.gitkeep
