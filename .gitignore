@@ -6,7 +6,7 @@ tools/
 !tools/7z.*
 
 data/
-!data/default/*
+!data/default/
 !data/*.txt
 
 *.build/
