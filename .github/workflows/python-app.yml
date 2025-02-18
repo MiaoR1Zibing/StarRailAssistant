@@ -40,7 +40,7 @@ jobs:
     steps:
       - name: Repo Check
         run: |
-          if [[ "$GITHUB_REPOSITORY" != "Shasnow/StarRailAssistant" ]]; then
+          if [[ "$GITHUB_REPOSITORY" != "MiaoR1Zibing/StarRailAssistant" ]]; then
             echo "When forking this repository to make your own builds, you have to adjust this check."
             exit 1
           fi
@@ -76,7 +76,14 @@ jobs:
           "version=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
       - name: Create Zip
         run: |
-          Compress-Archive -Path res,data,tools,dist/SRA.exe,README.md,HELP.md,LICENSE,version.json -DestinationPath StarRailAssistant_${{ env.version }}.zip
+              $filesToInclude = Get-Content .git_build | Where-Object { $_ -notmatch '^#' -and $_ -notmatch '^\s*$' }
+              $actualFiles = @()
+              foreach ($file in $filesToInclude) {
+                  if (Test-Path $file) {
+                      $actualFiles += $file
+                  }
+              }
+              Compress-Archive -Path $actualFiles -DestinationPath "StarRailAssistant_${{ env.version }}.zip"
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
