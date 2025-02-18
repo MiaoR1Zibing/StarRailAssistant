@@ -36,6 +36,7 @@ from requests import RequestException
 from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn, DownloadColumn, TransferSpeedColumn
 
 from StarRailAssistant.utils.WindowsProcess import is_process_running, task_kill, Popen
+from subprocess import DEVNULL  # 丢弃垃圾输出, 未遂. 想彻底解决还得再引入一个更新器,解决更新器自更新的覆盖问题
 
 FROZEN = getattr(sys, "frozen", False)
 """ 是否被打包成了可执行文件 """
@@ -78,11 +79,11 @@ class Updater:
         "https://gitee.com/yukikage/StarRailAssistant/releases/download/release/version.json"
     )
     PROXYS = [
-        "https://cdn.moran233.xyz/",
         "https://gh.llkk.cc/",
         "https://github.akams.cn/",
         "https://www.ghproxy.cn/",
         "https://ghproxy.cc/",
+        "https://cdn.moran233.xyz/",
         "",
     ]
     VERIFY = True
@@ -109,30 +110,13 @@ class Updater:
             ) as json_file:
                 json.dump(version_info, json_file, indent=4)
 
-    def check_json_structure(self):
-        """对老版本version.json的检查"""
-        with open(self.APP_PATH / "version.json", "r+", encoding="utf-8") as json_file:
-            version = json.load(json_file)
-            if "Announcement" not in version:
-                version["Announcement"] = "<hr><p>噔噔——新的公告界面～(∠・ω&lt; )⌒☆</p><hr>"
-                version["Announcement.DoNotShowAgain"] = False
-            if "VersionUpdate" not in version:
-                version["VersionUpdate"] = ("<html><h2>版本已更新 0.7.4</h2><ul>"
-                                            "<li>修改了裁剪截图区域的计算方法，因此您需要前往SRA设置中将“屏幕缩放”一项的值调整到实际的屏幕缩放，"
-                                            "例如您的电脑是150%缩放，则在此项中填入1.50。</li>"
-                                            "<li>为启动时的公告添加了“不再提醒”按钮，点击后到下一次更新前不会再弹出公告。</li>"
-                                            "<li>适配本周周期演算(2025.2.17)</li></ul></html>")
-                version["VersionUpdate.DoNotShowAgain"] = False
-            json_file.seek(0)
-            json.dump(version, json_file, indent=4, ensure_ascii=False)
-
     @lru_cache(maxsize=1)
     def get_current_version(self) -> VersionInfo:
         with open(self.APP_PATH / "version.json", "r", encoding="utf-8") as jsonfile:
             version_info_local = json.load(jsonfile)
-            version = version_info_local["version"]
-            resource_version = version_info_local["resource_version"]
-            announcement = version_info_local["Announcement"]
+            version = version_info_local.get("version", "0.0.0")
+            resource_version = version_info_local.get("resource_version", "0.0.0")
+            announcement = version_info_local.get("Announcement", "<hr><p>噔噔——新的公告界面～(∠・ω&lt; )⌒☆</p><hr>")
         return VersionInfo(version, resource_version, announcement, "")
 
     def announcement_change(self, text):
@@ -145,7 +129,6 @@ class Updater:
     def check_for_updates(self):
         """ 检查并更新 """
         print("检查版本信息...")
-        self.check_json_structure()
         version = self.get_current_version()
         try:
             url = self.version_check(version)
@@ -254,7 +237,7 @@ class Updater:
                 print("下载完成！")
                 return True
         except RequestException as e:
-            print(e)
+            print(f"\n拉取出了点小问题, 不过无伤大雅\t({e})")
             return False
         finally:
             if session is not None:
@@ -263,11 +246,10 @@ class Updater:
     def download(self, download_url: str) -> None:
         try:
             print("下载更新文件")
-            for proxy in self.PROXYS:
+            for i, proxy in enumerate(self.PROXYS):
+                print(f"正在尝试从第 {i + 1} 个下载线路下载, 请稍后...(剩余 {len(self.PROXYS)-i-1} 个备用线路待尝试)")
                 if self._download(download_url, self.DOWNLOADING_FILE, proxy):
                     break
-                else:
-                    continue
             else:
                 raise Exception("服务器连接失败")
         except Exception as e:
@@ -294,7 +276,7 @@ class Updater:
                 return
             command = f"{self.APP_PATH}/tools/7z x {self.TEMP_DOWNLOAD_FILE} -y"
             cmd = 'cmd.exe /c start "" ' + command
-            Popen(cmd, shell=True)
+            Popen(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
 
         except Exception as e:
             print(f"解压更新时出错: {e}")
@@ -324,6 +306,5 @@ if __name__ == "__main__":
         main.unzip()
     else:
         main.check_for_updates()
-
-    print('完美运行!')
-    os.system('pause')
+    print("完美运行!")
+    os.system("pause")
